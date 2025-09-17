@@ -1,0 +1,13 @@
+set tabsize 2
+set tabstospaces
+set autoindent
+set softwrap
+set atblanks
+set trimblanks
+set linenumbers
+set constantshow
+set titlecolor black,cyan
+set statuscolor black,cyan
+set mouse
+
+include "/usr/share/nano/*.nanorc"
