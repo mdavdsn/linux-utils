@@ -1,0 +1,3 @@
+# <file system>                           <mount point>          <type> <options>                                                              <dump> <pass>
+
+UUID=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX /path/to/mountpoint  ntfs   defaults,umask=000,dmask=026,fmask=033,uid=1000,gid=1000,windows_names 0       0
