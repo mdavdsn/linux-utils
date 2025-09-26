@@ -97,7 +97,10 @@ apt install -y \
     xz-utils \
     tk-dev \
     libffi-dev \
-    liblzma-dev || {
+    liblzma-dev \
+    qt6-base-dev \
+    qt6-svg-dev \
+    libkf6windowsystem-dev || {
     print_error "Failed to install development tools"
     exit 1
 }
@@ -207,10 +210,40 @@ apt install -y filelight || {
 }
 print_success "Filelight installed"
 
-# Configure zram (optional - creates a basic configuration)
+# Configure zram (creates or modifies configuration)
 print_status "Configuring zram..."
-if [ ! -f /etc/default/zramswap ]; then
-    cat > /etc/default/zramswap << EOF
+ZRAM_CONFIG="/etc/default/zramswap"
+
+if [ -f "$ZRAM_CONFIG" ]; then
+    print_status "Existing zram configuration found, updating it..."
+    # Backup existing configuration
+    cp "$ZRAM_CONFIG" "${ZRAM_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)"
+    print_status "Backed up existing configuration"
+
+    # Update existing configuration
+    sed -i 's/^ALGO=.*/ALGO=lz4/' "$ZRAM_CONFIG"
+    sed -i 's/^PERCENT=.*/PERCENT=50/' "$ZRAM_CONFIG"
+    sed -i 's/^SIZE=.*/SIZE=2048/' "$ZRAM_CONFIG"
+    sed -i 's/^PRIORITY=.*/PRIORITY=100/' "$ZRAM_CONFIG"
+
+    # Add any missing parameters
+    if ! grep -q "^ALGO=" "$ZRAM_CONFIG"; then
+        echo "ALGO=lz4" >> "$ZRAM_CONFIG"
+    fi
+    if ! grep -q "^PERCENT=" "$ZRAM_CONFIG"; then
+        echo "PERCENT=50" >> "$ZRAM_CONFIG"
+    fi
+    if ! grep -q "^SIZE=" "$ZRAM_CONFIG"; then
+        echo "SIZE=2048" >> "$ZRAM_CONFIG"
+    fi
+    if ! grep -q "^PRIORITY=" "$ZRAM_CONFIG"; then
+        echo "PRIORITY=100" >> "$ZRAM_CONFIG"
+    fi
+
+    print_success "zram configuration updated"
+else
+    print_status "Creating new zram configuration..."
+    cat > "$ZRAM_CONFIG" << EOF
 # Compression algorithm (lzo, lz4, zstd, lzo-rle)
 ALGO=lz4
 
@@ -224,8 +257,6 @@ SIZE=2048
 PRIORITY=100
 EOF
     print_success "zram configuration created"
-else
-    print_warning "zram configuration already exists"
 fi
 
 # Clean up
@@ -242,8 +273,10 @@ echo "Node.js version: $(node --version)"
 echo "npm version: $(npm --version)"
 echo "GCC version: $(gcc --version | head -n1)"
 echo "Flatpak version: $(flatpak --version)"
-echo "Variety version: $(variety --version 2>/dev/null || echo 'Installed')"
+echo "Variety: $(sudo -u "$ACTUAL_USER" variety --version 2>/dev/null || echo 'Installed')"
 echo "Timeshift version: $(timeshift --version 2>/dev/null || echo 'Installed')"
+echo "Synaptic: $(dpkg -l synaptic 2>/dev/null | grep '^ii' | awk '{print $3}' || echo 'Installed')"
+echo "Filelight: $(dpkg -l filelight 2>/dev/null | grep '^ii' | awk '{print $3}' || echo 'Installed')"
 echo "===================="
 
 print_success "All software installations completed successfully!"
