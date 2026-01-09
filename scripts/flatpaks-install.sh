@@ -2,6 +2,7 @@
 
 # Flatpak Applications Installation Script
 # This script automates the installation of essential Flatpak applications
+# and host-spawn utility for running host commands from containers
 # Requires Flatpak and Flathub repository to be already configured
 
 set -e  # Exit on any error
@@ -54,6 +55,94 @@ if ! flatpak remotes | grep -q flathub; then
 fi
 
 print_success "Flatpak and Flathub repository are available"
+
+# Function to install host-spawn
+install_host_spawn() {
+    print_status "Installing host-spawn utility..."
+    
+    # Detect architecture
+    local architecture
+    architecture=$(uname -m)
+    
+    # Map architecture names to host-spawn release naming
+    case "$architecture" in
+        x86_64)
+            architecture="x86_64"
+            ;;
+        aarch64)
+            architecture="aarch64"
+            ;;
+        armv7l)
+            architecture="armv7"
+            ;;
+        riscv64)
+            architecture="riscv64"
+            ;;
+        loongarch64)
+            architecture="loongarch64"
+            ;;
+        *)
+            print_error "Unsupported architecture: $architecture"
+            print_warning "host-spawn installation skipped. Continuing with Flatpak installations..."
+            return 1
+            ;;
+    esac
+    
+    # Fetch the latest version from GitHub API
+    print_status "Fetching latest host-spawn version from GitHub..."
+    local host_spawn_version
+    
+    if command -v curl &> /dev/null; then
+        host_spawn_version=$(curl -s https://api.github.com/repos/1player/host-spawn/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
+    elif command -v wget &> /dev/null; then
+        host_spawn_version=$(wget -qO- https://api.github.com/repos/1player/host-spawn/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
+    else
+        print_error "Neither curl nor wget is available. Cannot fetch latest version."
+        print_warning "Falling back to version v1.6.2"
+        host_spawn_version="v1.6.2"
+    fi
+    
+    # Validate that we got a version
+    if [ -z "$host_spawn_version" ]; then
+        print_warning "Could not determine latest version. Falling back to v1.6.2"
+        host_spawn_version="v1.6.2"
+    fi
+    
+    local download_url="https://github.com/1player/host-spawn/releases/download/${host_spawn_version}/host-spawn-${architecture}"
+    local install_path="/usr/local/bin/host-spawn"
+    
+    print_status "Downloading host-spawn ${host_spawn_version} for ${architecture}..."
+    
+    # Download to temporary location
+    if command -v curl &> /dev/null; then
+        if ! curl -L -o /tmp/host-spawn "$download_url"; then
+            print_error "Failed to download host-spawn"
+            return 1
+        fi
+    elif command -v wget &> /dev/null; then
+        if ! wget -O /tmp/host-spawn "$download_url"; then
+            print_error "Failed to download host-spawn"
+            return 1
+        fi
+    else
+        print_error "Neither curl nor wget is available. Cannot download host-spawn."
+        return 1
+    fi
+    
+    # Install to /usr/local/bin
+    print_status "Installing host-spawn to $install_path..."
+    if [ -w /usr/local/bin ]; then
+        mv /tmp/host-spawn "$install_path"
+        chmod +x "$install_path"
+    else
+        sudo mv /tmp/host-spawn "$install_path"
+        sudo chmod +x "$install_path"
+    fi
+    
+    print_success "host-spawn installed successfully to $install_path"
+    print_status "You can now run host commands from Flatpak containers using: host-spawn <command>"
+    return 0
+}
 
 # Function to install a Flatpak application
 install_flatpak() {
@@ -112,8 +201,11 @@ declare -a apps=(
     "Pika Backup|org.gnome.World.PikaBackup"
 )
 
-print_status "Starting installation of ${#apps[@]} applications..."
 echo "============================================"
+echo "Step 1: Installing Flatpak applications"
+echo "============================================"
+print_status "Starting installation of ${#apps[@]} applications..."
+echo ""
 
 # Install each application
 for app in "${apps[@]}"; do
@@ -129,6 +221,14 @@ for app in "${apps[@]}"; do
     # Add a small delay to avoid overwhelming the system
     sleep 1
 done
+
+# Install host-spawn after Flatpak applications
+echo ""
+echo "============================================"
+echo "Step 2: Installing host-spawn utility"
+echo "============================================"
+install_host_spawn
+echo ""
 
 # Installation summary
 echo ""
@@ -159,6 +259,7 @@ fi
 
 print_status "You can manage these applications using:"
 echo "  - Flatseal (installed) - for managing permissions"
+echo "  - host-spawn - run host commands from Flatpak: host-spawn <command>"
 echo "  - Command line: flatpak list, flatpak update, flatpak uninstall"
 echo "  - Your desktop environment's software center"
 
