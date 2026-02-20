@@ -25,7 +25,7 @@ Go to General tab > Base1:
 * Click Save
 
 Go to General tab > Base2
-* `$VH_ROOT/public_html`
+* Document Root: `$VH_ROOT/public_html`
 * Click Save
 
 Go to Log tab > Virtual Host Log:
