@@ -15,7 +15,7 @@ $ mkdir -p /home/[USER]/www/[DOMAIN]/logs
 
 Log in to OLS web admin and go to VHost Templates. Click the "+" to add a new template:
 * Template name: `vhostConfig`
-* Template file: `$SERVER_ROOT/conf/templates/vhostConfig.conf
+* Template file: `$SERVER_ROOT/conf/templates/vhostConfig.conf`
 * Mapped Listeners: `http, https`
 * Click save, then "Click to Create" under Template File
 
