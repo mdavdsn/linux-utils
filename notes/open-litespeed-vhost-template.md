@@ -39,7 +39,7 @@ Go to Log tab > Virtual Host Log:
 
 Go to Log tab > Access Log:
 * Log Control `Own Log File`
-* File Name: `$VH_ROOT/logs/access.log
+* File Name: `$VH_ROOT/logs/access.log`
 * Rolling Size: `10M`
 * Keep Days: `7`
 * Compress Archive: `Yes`
