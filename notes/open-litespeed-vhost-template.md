@@ -96,6 +96,6 @@ Perform a graceful restart, then click the Template tab. Under Member Virtual Ho
 
 SSH to the server and create a file to test the connection.
 ```bash
-& echo "<h1>It's working</h1> > ~/www/[DOMAIN]/public_html/index.html
+$ echo "<h1>It's working</h1> > ~/www/[DOMAIN]/public_html/index.html
 ```
 Visit the domain in a browser, making sure that the page loads and http is redirected to https.
