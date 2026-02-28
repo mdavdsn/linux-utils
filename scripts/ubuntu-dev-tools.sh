@@ -127,29 +127,26 @@ print_success "Git installed"
 
 # Install Node.js and npm
 print_status "Installing Node.js and npm..."
-# Install NodeSource repository for latest LTS Node.js
-curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - || {
-    print_warning "Failed to add NodeSource repository, falling back to default packages"
-    apt install -y nodejs npm || {
-        print_error "Failed to install Node.js and npm"
-        exit 1
-    }
-}
-
-# Install Node.js and npm from NodeSource if repository was added successfully
-if [ -f /etc/apt/sources.list.d/nodesource.list ]; then
+NODESOURCE_SETUP=$(mktemp)
+if curl -fsSL https://deb.nodesource.com/setup_lts.x -o "$NODESOURCE_SETUP"; then
+    bash "$NODESOURCE_SETUP"
+    rm -f "$NODESOURCE_SETUP"
     apt update -y
+    # NodeSource's nodejs package bundles npm — do NOT also install Ubuntu's npm
     apt install -y nodejs || {
         print_error "Failed to install Node.js from NodeSource"
         exit 1
     }
 else
+    print_warning "Failed to fetch NodeSource setup script, falling back to Ubuntu packages"
+    rm -f "$NODESOURCE_SETUP"
+    # Ubuntu's nodejs and npm can be installed together from the default repos
     apt install -y nodejs npm || {
         print_error "Failed to install Node.js and npm"
         exit 1
     }
 fi
-print_success "Node.js and npm installed"
+print_success "Node.js $(node --version) and npm $(npm --version) installed"
 
 # Install Flatpak
 print_status "Installing Flatpak..."
