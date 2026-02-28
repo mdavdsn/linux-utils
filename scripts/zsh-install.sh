@@ -60,13 +60,13 @@ apt install -y zsh || {
 }
 print_success "zsh installed successfully"
 
-# Install neofetch
-print_status "Installing neofetch..."
-apt install -y neofetch || {
-    print_error "Failed to install neofetch"
+# Install fastfetch
+print_status "Installing fastfetch..."
+apt install -y fastfetch || {
+    print_error "Failed to install fastfetch"
     exit 1
 }
-print_success "neofetch installed successfully"
+print_success "fastfetch installed successfully"
 
 # Install curl and git if not already present (required for Oh My Zsh)
 print_status "Installing dependencies for Oh My Zsh..."
@@ -188,9 +188,9 @@ source $ZSH/oh-my-zsh.sh
 
 # Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
+#   export EDITOR='nano'
 # else
-#   export EDITOR='mvim'
+#   export EDITOR='vim'
 # fi
 
 # Compilation flags
@@ -205,11 +205,11 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-# Run neofetch on shell startup
-neofetch
+# Run fastfetch on shell startup
+fastfetch
 EOF
 
-print_success ".zshrc configured with essembeh theme and neofetch"
+print_success ".zshrc configured with essembeh theme and fastfetch"
 
 # Set zsh as the default shell for the user
 print_status "Setting zsh as default shell for $ACTUAL_USER..."
@@ -230,7 +230,7 @@ echo "===================="
 echo "zsh version: $(zsh --version)"
 echo "Oh My Zsh: Installed in $ACTUAL_HOME/.oh-my-zsh"
 echo "Theme: essembeh"
-echo "neofetch: $(neofetch --version 2>/dev/null | head -n1 || echo 'Installed')"
+echo "fastfetch: $(neofetch --version 2>/dev/null | head -n1 || echo 'Installed')"
 echo "Default shell: $(getent passwd "$ACTUAL_USER" | cut -d: -f7)"
 echo "===================="
 
