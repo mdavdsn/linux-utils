@@ -207,6 +207,19 @@ apt install -y filelight || {
 }
 print_success "Filelight installed"
 
+# Install Kvantum (Qt theme engine)
+print_status "Installing Kvantum..."
+add-apt-repository -y ppa:papirus/papirus || {
+    print_error "Failed to add Papirus PPA for Kvantum"
+    exit 1
+}
+apt update -y
+apt install -y qt6-style-kvantum qt6-style-kvantum-themes || {
+    print_error "Failed to install Kvantum"
+    exit 1
+}
+print_success "Kvantum installed"
+
 # Configure zram (creates or modifies configuration)
 print_status "Configuring zram..."
 ZRAM_CONFIG="/etc/default/zramswap"
@@ -274,6 +287,7 @@ echo "Variety: $(sudo -u "$ACTUAL_USER" variety --version 2>/dev/null || echo 'I
 echo "Timeshift version: $(timeshift --version 2>/dev/null || echo 'Installed')"
 echo "Synaptic: $(dpkg -l synaptic 2>/dev/null | grep '^ii' | awk '{print $3}' || echo 'Installed')"
 echo "Filelight: $(dpkg -l filelight 2>/dev/null | grep '^ii' | awk '{print $3}' || echo 'Installed')"
+echo "Kvantum: $(dpkg -l qt6-style-kvantum 2>/dev/null | grep '^ii' | awk '{print $3}' || echo 'Installed')"
 echo "===================="
 
 print_success "All software installations completed successfully!"
