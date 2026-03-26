@@ -230,6 +230,82 @@ echo "============================================"
 install_host_spawn
 echo ""
 
+# Function to install FontBase AppImage
+install_fontbase() {
+    print_status "Installing FontBase AppImage..."
+
+    local user_home
+    user_home=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
+    local apps_dir="$user_home/Applications"
+    local install_path="$apps_dir/FontBase.AppImage"
+    local desktop_dir="$user_home/.local/share/applications"
+    local desktop_file="$desktop_dir/fontbase.desktop"
+
+    # Create ~/Applications directory if it doesn't exist
+    sudo -u "$ACTUAL_USER" mkdir -p "$apps_dir"
+
+    # Try to fetch the latest download URL from FontBase download page
+    print_status "Fetching latest FontBase version..."
+    local download_url=""
+
+    if command -v curl &> /dev/null; then
+        download_url=$(curl -sL https://fontba.se/downloads/linux | grep -oE 'https://releases\.fontba\.se/linux/FontBase-[^"]+\.AppImage' | head -1)
+    elif command -v wget &> /dev/null; then
+        download_url=$(wget -qO- https://fontba.se/downloads/linux | grep -oE 'https://releases\.fontba\.se/linux/FontBase-[^"]+\.AppImage' | head -1)
+    fi
+
+    # Fall back to known version if URL could not be determined
+    if [ -z "$download_url" ]; then
+        print_warning "Could not determine latest FontBase version. Falling back to known version."
+        download_url="https://releases.fontba.se/linux/FontBase-2026.2.5.AppImage"
+    fi
+
+    print_status "Downloading FontBase from $download_url..."
+
+    if command -v curl &> /dev/null; then
+        if ! sudo -u "$ACTUAL_USER" curl -L -o "$install_path" "$download_url"; then
+            print_error "Failed to download FontBase"
+            return 1
+        fi
+    elif command -v wget &> /dev/null; then
+        if ! sudo -u "$ACTUAL_USER" wget -O "$install_path" "$download_url"; then
+            print_error "Failed to download FontBase"
+            return 1
+        fi
+    else
+        print_error "Neither curl nor wget is available. Cannot download FontBase."
+        return 1
+    fi
+
+    chmod +x "$install_path"
+    print_success "FontBase installed to $install_path"
+
+    # Create .desktop entry
+    print_status "Creating FontBase desktop entry..."
+    sudo -u "$ACTUAL_USER" mkdir -p "$desktop_dir"
+
+    sudo -u "$ACTUAL_USER" tee "$desktop_file" > /dev/null <<EOF
+[Desktop Entry]
+Name=FontBase
+Comment=Professional font manager for designers and typographers
+Exec=$install_path --no-sandbox
+Icon=fontbase
+Type=Application
+Categories=Graphics;
+Terminal=false
+StartupNotify=true
+EOF
+
+    print_success "Desktop entry created at $desktop_file"
+    return 0
+}
+
+echo "============================================"
+echo "Step 3: Installing FontBase AppImage"
+echo "============================================"
+install_fontbase
+echo ""
+
 # Installation summary
 echo ""
 echo "============================================"
