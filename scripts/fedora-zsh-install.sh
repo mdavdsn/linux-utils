@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Zsh and Oh My Zsh Setup Script
-# This script installs zsh, Oh My Zsh, and neofetch, then configures them
+# This script installs zsh, Oh My Zsh, and fastfetch, then configures them
+# Targets a fresh Fedora 44 desktop installation
 # Run with sudo privileges
 
 set -e  # Exit on any error
@@ -45,16 +46,18 @@ print_status "Starting zsh setup script..."
 print_status "Configuring for user: $ACTUAL_USER"
 print_status "User home directory: $ACTUAL_HOME"
 
-# Update package repositories
-print_status "Updating package repositories..."
-apt update -y || {
-    print_error "Failed to update package repositories"
+# Refresh package metadata
+# Note: dnf check-update exits with code 100 when updates are available, which
+# would trigger set -e, so dnf makecache is used here for a safe metadata refresh
+print_status "Refreshing package metadata..."
+dnf makecache || {
+    print_error "Failed to refresh package metadata"
     exit 1
 }
 
 # Install zsh
 print_status "Installing zsh..."
-apt install -y zsh || {
+dnf install -y zsh || {
     print_error "Failed to install zsh"
     exit 1
 }
@@ -62,7 +65,7 @@ print_success "zsh installed successfully"
 
 # Install fastfetch
 print_status "Installing fastfetch..."
-apt install -y fastfetch || {
+dnf install -y fastfetch || {
     print_error "Failed to install fastfetch"
     exit 1
 }
@@ -70,11 +73,24 @@ print_success "fastfetch installed successfully"
 
 # Install curl and git if not already present (required for Oh My Zsh)
 print_status "Installing dependencies for Oh My Zsh..."
-apt install -y curl git || {
+dnf install -y curl git || {
     print_error "Failed to install curl and git"
     exit 1
 }
 print_success "Dependencies installed"
+
+# Install PackageKit-command-not-found (provides backend for the command-not-found zsh plugin)
+print_status "Checking for PackageKit-command-not-found..."
+if rpm -q PackageKit-command-not-found &>/dev/null; then
+    print_status "PackageKit-command-not-found is already installed, skipping installation"
+else
+    print_status "Installing PackageKit-command-not-found..."
+    dnf install -y PackageKit-command-not-found || {
+        print_error "Failed to install PackageKit-command-not-found"
+        exit 1
+    }
+    print_success "PackageKit-command-not-found installed"
+fi
 
 # Install Oh My Zsh for the user
 print_status "Installing Oh My Zsh..."
@@ -106,6 +122,13 @@ fi
 # Configure .zshrc
 print_status "Configuring .zshrc..."
 ZSHRC_FILE="$ACTUAL_HOME/.zshrc"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="$(dirname "$SCRIPT_DIR")/config"
+
+if [ ! -f "$CONFIG_DIR/zshrc" ]; then
+    print_error "Could not find $CONFIG_DIR/zshrc"
+    exit 1
+fi
 
 if [ -f "$ZSHRC_FILE" ]; then
     # Backup existing .zshrc
@@ -113,103 +136,9 @@ if [ -f "$ZSHRC_FILE" ]; then
     print_status "Backed up existing .zshrc"
 fi
 
-# Create or modify .zshrc with essembeh theme and neofetch
-sudo -u "$ACTUAL_USER" cat > "$ZSHRC_FILE" << 'EOF'
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+sudo -u "$ACTUAL_USER" cp "$CONFIG_DIR/zshrc" "$ZSHRC_FILE"
 
-# Set name of the theme to load
-ZSH_THEME="essembeh"
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications.
-# For more details, see 'man strftime' for format specifiers.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(git colored-man-pages command-not-found)
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='nano'
-# else
-#   export EDITOR='vim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though users
-# are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-# Run fastfetch on shell startup
-fastfetch
-EOF
-
-print_success ".zshrc configured with essembeh theme and fastfetch"
+print_success ".zshrc installed from linux-utils/config/zshrc"
 
 # Set zsh as the default shell for the user
 print_status "Setting zsh as default shell for $ACTUAL_USER..."
@@ -230,7 +159,7 @@ echo "===================="
 echo "zsh version: $(zsh --version)"
 echo "Oh My Zsh: Installed in $ACTUAL_HOME/.oh-my-zsh"
 echo "Theme: essembeh"
-echo "fastfetch: $(neofetch --version 2>/dev/null | head -n1 || echo 'Installed')"
+echo "fastfetch: $(fastfetch --version 2>/dev/null | head -n1 || echo 'Installed')"
 echo "Default shell: $(getent passwd "$ACTUAL_USER" | cut -d: -f7)"
 echo "===================="
 
