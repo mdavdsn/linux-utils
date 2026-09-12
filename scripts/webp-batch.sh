@@ -81,6 +81,7 @@ echo "----------------------------------------"
 converted_count=0
 skipped_count=0
 overwrite_all=false
+skip_all=false
 
 # Function to prompt user for overwrite decision
 prompt_overwrite() {
@@ -92,17 +93,23 @@ prompt_overwrite() {
         return 0
     fi
 
+    # If skip_all is set, return false
+    if [ "$skip_all" = true ]; then
+        return 1
+    fi
+
     echo ""
     echo "WebP file already exists: $(basename "$output_file")"
     echo "Options:"
     echo "  [y] Yes, overwrite this file"
     echo "  [n] No, skip this file"
     echo "  [a] Yes to all (overwrite all existing WebP files)"
+    echo "  [s] Skip all (skip all existing WebP files, only convert new images)"
     echo "  [q] Quit the script"
     echo ""
 
     while true; do
-        read -p "What would you like to do? [y/n/a/q]: " choice </dev/tty
+        read -p "What would you like to do? [y/n/a/s/q]: " choice </dev/tty
         case $choice in
             [Yy]* )
                 return 0  # Overwrite this file
@@ -114,12 +121,16 @@ prompt_overwrite() {
                 overwrite_all=true
                 return 0  # Overwrite this file and all future ones
                 ;;
+            [Ss]* )
+                skip_all=true
+                return 1  # Skip this file and all future ones
+                ;;
             [Qq]* )
                 echo "Script terminated by user."
                 exit 0
                 ;;
             * )
-                echo "Please answer y (yes), n (no), a (yes to all), or q (quit)."
+                echo "Please answer y (yes), n (no), a (yes to all), s (skip all), or q (quit)."
                 ;;
         esac
     done
@@ -200,6 +211,10 @@ echo "Total image files found: $total_files"
 # Show overwrite mode if it was used
 if [ "$overwrite_all" = true ]; then
     echo "Mode: Overwrite all was selected"
+fi
+
+if [ "$skip_all" = true ]; then
+    echo "Mode: Skip all was selected"
 fi
 
 if [ "$SKIP_EXISTING" = true ]; then
