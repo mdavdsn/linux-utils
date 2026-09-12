@@ -6,18 +6,21 @@
 
 # Function to display usage
 show_usage() {
-    echo "Usage: $0 [directory] [quality]"
+    echo "Usage: $0 [directory] [quality] [-s|--skip-existing]"
     echo ""
     echo "Arguments:"
-    echo "  directory  - Directory containing images to convert (default: current directory)"
-    echo "  quality    - WebP compression quality 0-100 (default: 80)"
+    echo "  directory          - Directory containing images to convert (default: current directory)"
+    echo "  quality            - WebP compression quality 0-100 (default: 80)"
+    echo "  -s, --skip-existing - Skip any image that already has a matching WebP file"
+    echo "                        (no overwrite prompt; only converts images with no existing .webp)"
     echo ""
     echo "Supported formats: PNG, TIF, BMP, JPG, JPEG"
     echo ""
     echo "Examples:"
-    echo "  $0                    # Convert files in current directory with quality 80"
-    echo "  $0 ./images           # Convert files in ./images directory with quality 80"
-    echo "  $0 ./images 90        # Convert files in ./images directory with quality 90"
+    echo "  $0                          # Convert files in current directory with quality 80"
+    echo "  $0 ./images                 # Convert files in ./images directory with quality 80"
+    echo "  $0 ./images 90              # Convert files in ./images directory with quality 90"
+    echo "  $0 ./images 90 --skip-existing  # Only convert images with no existing .webp"
 }
 
 # Check if cwebp is installed
@@ -29,12 +32,27 @@ if ! command -v cwebp &> /dev/null; then
     exit 1
 fi
 
+# Parse arguments (positional: directory, quality; flag: -s/--skip-existing)
+SKIP_EXISTING=false
+positional_args=()
+
+for arg in "$@"; do
+    case "$arg" in
+        -s|--skip-existing)
+            SKIP_EXISTING=true
+            ;;
+        *)
+            positional_args+=("$arg")
+            ;;
+    esac
+done
+
 # Set directory (default to current directory)
-DIRECTORY="${1:-.}"
+DIRECTORY="${positional_args[0]:-.}"
 
 # Handle quality parameter
-if [ -n "$2" ]; then
-    QUALITY="$2"
+if [ -n "${positional_args[1]}" ]; then
+    QUALITY="${positional_args[1]}"
 else
     echo "Enter WebP compression quality (0-100, default is 80):"
     read -p "Quality [80]: " input_quality
@@ -116,6 +134,12 @@ convert_file() {
 
     # Check if output file already exists
     if [ -f "$output_file" ]; then
+        if [ "$SKIP_EXISTING" = true ]; then
+            echo "Skipping: $filename (existing WebP file found)"
+            ((skipped_count++))
+            return
+        fi
+
         if prompt_overwrite "$filename" "$output_file"; then
             echo "Overwriting: $filename -> $name_without_ext.webp"
         else
@@ -176,4 +200,8 @@ echo "Total image files found: $total_files"
 # Show overwrite mode if it was used
 if [ "$overwrite_all" = true ]; then
     echo "Mode: Overwrite all was selected"
+fi
+
+if [ "$SKIP_EXISTING" = true ]; then
+    echo "Mode: Skip existing WebP files was selected"
 fi
